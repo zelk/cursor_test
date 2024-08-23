@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'dart:math'; // Add this import for Random
+import 'package:flutter/services.dart';
 
 void main() {
   runApp(const MyApp());
@@ -179,14 +180,6 @@ class _MyHomePageState extends State<MyHomePage> {
     print("Timed events: $timedEventsCount");
   }
 
-  String _formatTime(DateTime time) {
-    return "${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}";
-  }
-
-  String _formatDate(DateTime date) {
-    return "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
-  }
-
   void _regenerateEvents() {
     setState(() {
       events.clear();
@@ -194,11 +187,17 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  void _updateEvent(Event oldEvent, Event newEvent) {
+  void _updateEvent(Event oldEvent, Event? newEvent) {
     setState(() {
       final index = events.indexOf(oldEvent);
       if (index != -1) {
-        events[index] = newEvent;
+        if (newEvent == null) {
+          // Delete the event
+          events.removeAt(index);
+        } else {
+          // Update the event
+          events[index] = newEvent;
+        }
       }
     });
   }
@@ -234,7 +233,7 @@ class _MyHomePageState extends State<MyHomePage> {
 class CalendarView extends StatelessWidget {
   final List<Event> events;
   final List<Person> people;
-  final Function(Event oldEvent, Event newEvent) onUpdateEvent;
+  final Function(Event oldEvent, Event? newEvent) onUpdateEvent;
 
   const CalendarView({
     super.key,
@@ -440,7 +439,7 @@ class CalendarView extends StatelessWidget {
       TextPosition(offset: titleController.text.length),
     );
 
-    void _submitForm() {
+    void submitForm() {
       if (formKey.currentState!.validate()) {
         final updatedEvent = Event(
           start: start,
@@ -455,110 +454,129 @@ class CalendarView extends StatelessWidget {
       }
     }
 
+    void deleteEvent() {
+      onUpdateEvent(event, null); // Pass null to indicate deletion
+      Navigator.of(context).pop();
+    }
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: const Text('Edit Event'),
-              content: Form(
-                key: formKey,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextFormField(
-                        decoration: const InputDecoration(labelText: 'Title'),
-                        controller: titleController,
-                        autofocus: true,
-                        onFieldSubmitted: (_) => _submitForm(),
-                      ),
-                      TextFormField(
-                        decoration:
-                            const InputDecoration(labelText: 'Description'),
-                        initialValue: description,
-                        onChanged: (value) => description = value,
-                        maxLines: 5, // Set to multiple lines
-                        minLines: 3, // Minimum number of lines to show
-                        textInputAction:
-                            TextInputAction.newline, // Allow new lines
-                      ),
-                      CheckboxListTile(
-                        title: const Text('Has Time'),
-                        value: hasTime,
-                        onChanged: (value) {
-                          setState(() {
-                            hasTime = value ?? false;
-                          });
-                        },
-                      ),
-                      if (hasTime) ...[
-                        ListTile(
-                          title: const Text('Start Time'),
-                          subtitle: Text(start?.toString() ?? 'Not set'),
-                          onTap: () async {
-                            final picked = await showDatePicker(
-                              context: context,
-                              initialDate: start ?? DateTime.now(),
-                              firstDate: DateTime(2000),
-                              lastDate: DateTime(2100),
-                            );
-                            if (picked != null) {
-                              start = picked;
-                            }
+        return RawKeyboardListener(
+          focusNode: FocusNode(),
+          onKey: (RawKeyEvent event) {
+            if (event is RawKeyDownEvent &&
+                event.logicalKey == LogicalKeyboardKey.escape) {
+              print("ESC key pressed"); // Debug print
+              Navigator.of(context).pop();
+            }
+          },
+          child: StatefulBuilder(
+            builder: (context, setState) {
+              return AlertDialog(
+                title: const Text('Edit Event'),
+                content: Form(
+                  key: formKey,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextFormField(
+                          decoration: const InputDecoration(labelText: 'Title'),
+                          controller: titleController,
+                          autofocus: true,
+                          onFieldSubmitted: (_) => submitForm(),
+                        ),
+                        TextFormField(
+                          decoration:
+                              const InputDecoration(labelText: 'Description'),
+                          initialValue: description,
+                          onChanged: (value) => description = value,
+                          maxLines: 5, // Set to multiple lines
+                          minLines: 3, // Minimum number of lines to show
+                          textInputAction:
+                              TextInputAction.newline, // Allow new lines
+                        ),
+                        CheckboxListTile(
+                          title: const Text('Has Time'),
+                          value: hasTime,
+                          onChanged: (value) {
+                            setState(() {
+                              hasTime = value ?? false;
+                            });
                           },
                         ),
-                        ListTile(
-                          title: const Text('End Time'),
-                          subtitle: Text(end?.toString() ?? 'Not set'),
-                          onTap: () async {
-                            final picked = await showDatePicker(
-                              context: context,
-                              initialDate: end ?? DateTime.now(),
-                              firstDate: DateTime(2000),
-                              lastDate: DateTime(2100),
-                            );
-                            if (picked != null) {
-                              end = picked;
-                            }
-                          },
-                        ),
+                        if (hasTime) ...[
+                          ListTile(
+                            title: const Text('Start Time'),
+                            subtitle: Text(start?.toString() ?? 'Not set'),
+                            onTap: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: start ?? DateTime.now(),
+                                firstDate: DateTime(2000),
+                                lastDate: DateTime(2100),
+                              );
+                              if (picked != null) {
+                                setState(() {
+                                  start = picked;
+                                });
+                              }
+                            },
+                          ),
+                          ListTile(
+                            title: const Text('End Time'),
+                            subtitle: Text(end?.toString() ?? 'Not set'),
+                            onTap: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: end ?? DateTime.now(),
+                                firstDate: DateTime(2000),
+                                lastDate: DateTime(2100),
+                              );
+                              if (picked != null) {
+                                setState(() {
+                                  end = picked;
+                                });
+                              }
+                            },
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
-              ),
-              actions: [
-                TextButton(
-                  child: const Text('Cancel'),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-                TextButton(
-                  child: const Text('OK'),
-                  onPressed: _submitForm,
-                ),
-              ],
-            );
-          },
+                actions: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      TextButton(
+                        onPressed: deleteEvent,
+                        style:
+                            TextButton.styleFrom(foregroundColor: Colors.red),
+                        child: const Text('Delete'),
+                      ),
+                      Row(
+                        children: [
+                          TextButton(
+                            child: const Text('Cancel'),
+                            onPressed: () => Navigator.of(context).pop(),
+                          ),
+                          TextButton(
+                            onPressed: submitForm,
+                            child: const Text('OK'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              );
+            },
+          ),
         );
       },
     );
-  }
-
-  bool _isEventPast(Event event, DateTime now) {
-    if (event.hasTime) {
-      return event.end != null
-          ? event.end!.isBefore(now)
-          : (event.start != null ? event.start!.isBefore(now) : false);
-    } else {
-      // For events without time, compare only the date
-      final eventDate = event.start != null
-          ? DateTime(event.start!.year, event.start!.month, event.start!.day)
-          : null;
-      final today = DateTime(now.year, now.month, now.day);
-      return eventDate != null && eventDate.isBefore(today);
-    }
   }
 
   String _formatTime(DateTime time) {
@@ -587,7 +605,7 @@ class CalendarView extends StatelessWidget {
   }
 
   Color _darkenColor(Color color) {
-    final amount = 0.1;
+    const amount = 0.1;
     final hsl = HSLColor.fromColor(color);
     return hsl
         .withLightness((hsl.lightness - amount).clamp(0.0, 1.0))
@@ -677,9 +695,5 @@ class _HoverableEventWidgetState extends State<_HoverableEventWidget> {
       final today = DateTime(now.year, now.month, now.day);
       return eventDate != null && eventDate.isBefore(today);
     }
-  }
-
-  String _formatTime(DateTime time) {
-    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
   }
 }
