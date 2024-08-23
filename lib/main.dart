@@ -188,7 +188,8 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  void _updateEvent(Event oldEvent, Event? newEvent) {
+  void _updateEvent(
+      Event oldEvent, Event? newEvent, int focusedDay, int focusedPersonIndex) {
     setState(() {
       final index = events.indexOf(oldEvent);
       if (index != -1) {
@@ -199,8 +200,42 @@ class _MyHomePageState extends State<MyHomePage> {
           // Update the event
           events[index] = newEvent;
         }
+        // Resort events and update _focusedEventIndex
+        _resortEventsAndUpdateFocus(focusedDay, focusedPersonIndex);
       }
     });
+  }
+
+  void _resortEventsAndUpdateFocus(int focusedDay, int focusedPersonIndex) {
+    final cellEvents = _getEventsForCurrentCell(focusedDay, focusedPersonIndex);
+    cellEvents.sort((a, b) {
+      if (a.hasTime && b.hasTime) {
+        return a.start!.compareTo(b.start!);
+      } else if (a.hasTime) {
+        return -1;
+      } else if (b.hasTime) {
+        return 1;
+      } else {
+        return 0;
+      }
+    });
+
+    // Note: We can't update _focusedEventIndex here as it's in CalendarView
+    // You might want to consider moving this logic to CalendarView
+  }
+
+  List<Event> _getEventsForCurrentCell(int focusedDay, int focusedPersonIndex) {
+    final now = DateTime.now();
+    final person = people[focusedPersonIndex];
+
+    return events
+        .where((event) =>
+            event.person.name == person.name &&
+            event.start != null &&
+            event.start!.day == focusedDay &&
+            event.start!.month == now.month &&
+            event.start!.year == now.year)
+        .toList();
   }
 
   @override
@@ -242,7 +277,8 @@ class _MyHomePageState extends State<MyHomePage> {
 class CalendarView extends StatefulWidget {
   final List<Event> events;
   final List<Person> people;
-  final Function(Event oldEvent, Event? newEvent) onUpdateEvent;
+  final Function(Event oldEvent, Event? newEvent, int focusedDay,
+      int focusedPersonIndex) onUpdateEvent;
 
   const CalendarView({
     super.key,
@@ -260,6 +296,7 @@ class _CalendarViewState extends State<CalendarView> {
   int _focusedPersonIndex = 0;
   bool _isEventKeyboardNavigation = false;
   int _focusedEventIndex = -1;
+  Event? _focusedEvent;
 
   final FocusNode _focusNode = FocusNode();
   final ScrollController _scrollController = ScrollController();
@@ -283,7 +320,8 @@ class _CalendarViewState extends State<CalendarView> {
       onKey: (FocusNode node, RawKeyEvent event) {
         if (event is RawKeyDownEvent) {
           if (event.logicalKey == LogicalKeyboardKey.enter) {
-            final cellEvents = _getEventsForCurrentCell();
+            final cellEvents = _getEventsForCell(
+                _focusedDay, widget.people[_focusedPersonIndex]);
             if (cellEvents.isEmpty) {
               return KeyEventResult.skipRemainingHandlers;
             }
@@ -352,11 +390,17 @@ class _CalendarViewState extends State<CalendarView> {
   }
 
   KeyEventResult _handleEventKeyboardNavigation(RawKeyEvent event) {
-    final cellEvents = _getEventsForCurrentCell();
+    if (!_isEventKeyboardNavigation) return KeyEventResult.ignored;
+
+    final cellEvents =
+        _getEventsForCell(_focusedDay, widget.people[_focusedPersonIndex]);
+    if (cellEvents.isEmpty) return KeyEventResult.ignored;
+
     if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
       if (_focusedEventIndex > 0) {
         setState(() {
           _focusedEventIndex--;
+          _focusedEvent = cellEvents[_focusedEventIndex];
         });
         return KeyEventResult.handled;
       }
@@ -364,31 +408,24 @@ class _CalendarViewState extends State<CalendarView> {
       if (_focusedEventIndex < cellEvents.length - 1) {
         setState(() {
           _focusedEventIndex++;
+          _focusedEvent = cellEvents[_focusedEventIndex];
         });
         return KeyEventResult.handled;
       }
-    } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft ||
-        event.logicalKey == LogicalKeyboardKey.arrowRight) {
-      return KeyEventResult.skipRemainingHandlers;
-    } else if (event.logicalKey == LogicalKeyboardKey.delete ||
-        event.logicalKey == LogicalKeyboardKey.backspace) {
-      if (_focusedEventIndex >= 0 && _focusedEventIndex < cellEvents.length) {
-        final eventToDelete = cellEvents[_focusedEventIndex];
-        widget.onUpdateEvent(eventToDelete, null); // Delete the event
-        setState(() {
-          if (cellEvents.length == 1) {
-            // If this was the last event, exit Event Keyboard Navigation
-            _exitEventKeyboardNavigation();
-          } else {
-            // Adjust the focused event index
-            _focusedEventIndex =
-                _focusedEventIndex.clamp(0, cellEvents.length - 2);
-          }
-        });
-      }
+    } else if (event.logicalKey == LogicalKeyboardKey.enter) {
+      _openEditDialogForFocusedEvent();
       return KeyEventResult.handled;
     }
-    return KeyEventResult.skipRemainingHandlers;
+    return KeyEventResult.ignored;
+  }
+
+  void _openEditDialogForFocusedEvent() {
+    final cellEvents =
+        _getEventsForCell(_focusedDay, widget.people[_focusedPersonIndex]);
+    if (_focusedEventIndex >= 0 && _focusedEventIndex < cellEvents.length) {
+      final focusedEvent = cellEvents[_focusedEventIndex];
+      _showEventEditDialog(context, focusedEvent);
+    }
   }
 
   KeyEventResult _handleCellKeyboardNavigation(RawKeyEvent event) {
@@ -427,7 +464,7 @@ class _CalendarViewState extends State<CalendarView> {
       final RenderBox? tableBox = context.findRenderObject() as RenderBox?;
       if (tableBox == null) return;
 
-      final cellHeight = 100.0; // Assuming each cell is 100 pixels high
+      const cellHeight = 100.0; // Assuming each cell is 100 pixels high
       final scrollOffset = (_focusedDay - 1) * cellHeight;
       final viewportHeight = _scrollController.position.viewportDimension;
       final currentScrollOffset = _scrollController.offset;
@@ -452,19 +489,25 @@ class _CalendarViewState extends State<CalendarView> {
   }
 
   void _toggleKeyboardNavigationMode() {
-    final cellEvents = _getEventsForCurrentCell();
-    if (cellEvents.isNotEmpty) {
-      setState(() {
-        _isEventKeyboardNavigation = !_isEventKeyboardNavigation;
-        _focusedEventIndex = _isEventKeyboardNavigation ? 0 : -1;
-      });
-    }
+    final cellEvents =
+        _getEventsForCell(_focusedDay, widget.people[_focusedPersonIndex]);
+    setState(() {
+      _isEventKeyboardNavigation = !_isEventKeyboardNavigation;
+      if (_isEventKeyboardNavigation && cellEvents.isNotEmpty) {
+        _focusedEventIndex = 0;
+        _focusedEvent = cellEvents[_focusedEventIndex];
+      } else {
+        _focusedEventIndex = -1;
+        _focusedEvent = null;
+      }
+    });
   }
 
   void _exitEventKeyboardNavigation() {
     setState(() {
       _isEventKeyboardNavigation = false;
       _focusedEventIndex = -1;
+      _focusedEvent = null;
     });
   }
 
@@ -575,34 +618,26 @@ class _CalendarViewState extends State<CalendarView> {
 
   Widget _buildPersonCell(
       DateTime now, int day, Person person, int personIndex) {
-    final date = DateTime(now.year, now.month, day);
-    final isToday =
-        date.year == now.year && date.month == now.month && date.day == now.day;
-    final isPast = date.isBefore(DateTime(now.year, now.month, now.day));
-
-    final cellEvents = widget.events
-        .where((event) =>
-            event.person.name == person.name &&
-            event.start != null &&
-            event.start!.day == day &&
-            event.start!.month == now.month &&
-            event.start!.year == now.year)
-        .toList();
-
-    cellEvents.sort((a, b) {
-      if (a.hasTime && b.hasTime) {
-        return a.start!.compareTo(b.start!);
-      } else if (a.hasTime) {
-        return -1;
-      } else if (b.hasTime) {
-        return 1;
-      } else {
-        return 0;
-      }
-    });
-
+    final cellEvents = _getEventsForCell(day, person);
     final isCellFocused =
         _focusedDay == day && _focusedPersonIndex == personIndex;
+
+    if (isCellFocused && _isEventKeyboardNavigation) {
+      if (_focusedEventIndex == -1 || _focusedEvent == null) {
+        _focusedEventIndex = cellEvents.isEmpty ? -1 : 0;
+        _focusedEvent =
+            _focusedEventIndex >= 0 ? cellEvents[_focusedEventIndex] : null;
+      } else {
+        // Ensure the focused event is still in the cell
+        final eventIndex = cellEvents.indexWhere((e) => e == _focusedEvent);
+        if (eventIndex == -1) {
+          _focusedEventIndex = 0;
+          _focusedEvent = cellEvents.isNotEmpty ? cellEvents[0] : null;
+        } else {
+          _focusedEventIndex = eventIndex;
+        }
+      }
+    }
 
     return TableCell(
       child: GestureDetector(
@@ -610,7 +645,8 @@ class _CalendarViewState extends State<CalendarView> {
         behavior: HitTestBehavior.opaque,
         child: Container(
           decoration: BoxDecoration(
-            color: _getCellBackgroundColor(date, isToday, isPast, false),
+            color: _getCellBackgroundColor(
+                DateTime(now.year, now.month, day), false, false, false),
             border: Border.all(
               color: isCellFocused
                   ? (_isEventKeyboardNavigation
@@ -705,15 +741,57 @@ class _CalendarViewState extends State<CalendarView> {
   }
 
   void _showEventEditDialog(BuildContext context, Event event) {
+    _focusedEvent = event; // Store the currently focused event
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return EventEditDialog(
           event: event,
-          onUpdateEvent: widget.onUpdateEvent,
+          onUpdateEvent: (Event oldEvent, Event? newEvent) {
+            widget.onUpdateEvent(
+                oldEvent, newEvent, _focusedDay, _focusedPersonIndex);
+            _updateFocusedEventIndex(oldEvent, newEvent);
+          },
         );
       },
     );
+  }
+
+  void _updateFocusedEventIndex(Event oldEvent, Event? newEvent) {
+    setState(() {
+      final cellEvents =
+          _getEventsForCell(_focusedDay, widget.people[_focusedPersonIndex]);
+      cellEvents.sort((a, b) {
+        if (a.hasTime && b.hasTime) {
+          return a.start!.compareTo(b.start!);
+        } else if (a.hasTime) {
+          return -1;
+        } else if (b.hasTime) {
+          return 1;
+        } else {
+          return 0;
+        }
+      });
+
+      if (_isEventKeyboardNavigation) {
+        if (newEvent != null) {
+          // Find the index of the updated event
+          _focusedEventIndex = cellEvents.indexWhere((e) => e == newEvent);
+        } else {
+          // If the event was deleted, focus on the next event or the last one if it was the last event
+          _focusedEventIndex =
+              _focusedEventIndex.clamp(0, cellEvents.length - 1);
+        }
+
+        if (_focusedEventIndex == -1) {
+          // If the event is no longer in the cell, reset focus
+          _focusedEventIndex = cellEvents.isEmpty ? -1 : 0;
+        }
+
+        _focusedEvent =
+            _focusedEventIndex >= 0 ? cellEvents[_focusedEventIndex] : null;
+      }
+    });
   }
 
   String _formatTime(DateTime time) {
@@ -753,27 +831,31 @@ class _CalendarViewState extends State<CalendarView> {
     return date.weekday == DateTime.saturday || date.weekday == DateTime.sunday;
   }
 
-  List<Event> _getEventsForCurrentCell() {
+  List<Event> _getEventsForCell(int day, Person person) {
     final now = DateTime.now();
-    final date = DateTime(now.year, now.month, _focusedDay);
-    final person = widget.people[_focusedPersonIndex];
 
-    return widget.events
+    final cellEvents = widget.events
         .where((event) =>
             event.person.name == person.name &&
             event.start != null &&
-            event.start!.day == _focusedDay &&
+            event.start!.day == day &&
             event.start!.month == now.month &&
             event.start!.year == now.year)
         .toList();
-  }
 
-  void _openEditDialogForFocusedEvent() {
-    final cellEvents = _getEventsForCurrentCell();
-    if (_focusedEventIndex >= 0 && _focusedEventIndex < cellEvents.length) {
-      final focusedEvent = cellEvents[_focusedEventIndex];
-      _showEventEditDialog(context, focusedEvent);
-    }
+    cellEvents.sort((a, b) {
+      if (a.hasTime && b.hasTime) {
+        return a.start!.compareTo(b.start!);
+      } else if (a.hasTime) {
+        return -1;
+      } else if (b.hasTime) {
+        return 1;
+      } else {
+        return 0;
+      }
+    });
+
+    return cellEvents;
   }
 
   void _handleCellTap(int day, int personIndex) {
@@ -782,6 +864,7 @@ class _CalendarViewState extends State<CalendarView> {
       _focusedPersonIndex = personIndex;
       _isEventKeyboardNavigation = false;
       _focusedEventIndex = -1;
+      _focusedEvent = null;
     });
     _focusNode.requestFocus();
     _scrollToFocusedCell(); // Add this line to trigger auto-scrolling
