@@ -280,6 +280,30 @@ class _CalendarViewState extends State<CalendarView> {
   final ScrollController _scrollController = ScrollController();
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToCurrentDay();
+    });
+  }
+
+  void _scrollToCurrentDay() {
+    final now = DateTime.now();
+    final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
+    const cellHeight = 100.0; // Assuming each cell is 100 pixels high
+    final viewportHeight = _scrollController.position.viewportDimension;
+    final currentDayOffset = (now.day - 1) * cellHeight;
+
+    if (currentDayOffset + viewportHeight > daysInMonth * cellHeight) {
+      // If the current day is close to the end of the month, scroll to the bottom
+      _scrollController.jumpTo(daysInMonth * cellHeight - viewportHeight);
+    } else {
+      // Otherwise, scroll to the current day
+      _scrollController.jumpTo(currentDayOffset);
+    }
+  }
+
+  @override
   void dispose() {
     _scrollController.dispose();
     _focusNode.dispose();
