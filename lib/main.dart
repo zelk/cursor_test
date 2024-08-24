@@ -640,78 +640,101 @@ class _CalendarViewState extends State<CalendarView> {
     }
 
     return TableCell(
-      child: GestureDetector(
-        onTap: () => _handleCellTap(day, personIndex),
-        behavior: HitTestBehavior.opaque,
-        child: Container(
-          decoration: BoxDecoration(
-            color: _getCellBackgroundColor(
-                DateTime(now.year, now.month, day), false, false, false),
-            border: Border.all(
-              color: isCellFocused
-                  ? (_isEventKeyboardNavigation
-                      ? Colors.orange // Regular orange for event navigation
-                      : Colors
-                          .orange.shade700) // Darker orange for regular focus
-                  : Colors.grey[300]!,
-              width: isCellFocused ? (_isEventKeyboardNavigation ? 2 : 3) : 1,
-            ),
-            boxShadow: isCellFocused && !_isEventKeyboardNavigation
-                ? [
-                    BoxShadow(
-                      color: Colors.orange.withOpacity(0.3),
-                      blurRadius: 4,
-                      spreadRadius: 2,
-                    )
-                  ]
-                : null,
-          ),
-          height: 100,
-          child: Stack(
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: cellEvents.asMap().entries.map((entry) {
-                  int index = entry.key;
-                  Event event = entry.value;
-                  return _buildEventWidget(
-                    event,
-                    now,
-                    context,
-                    isFocused: isCellFocused &&
-                        _isEventKeyboardNavigation &&
-                        index == _focusedEventIndex,
-                  );
-                }).toList(),
+      child: DragTarget<Event>(
+        onAccept: (event) {
+          setState(() {
+            final oldEvent = event;
+            final newEvent = Event(
+              start: DateTime(now.year, now.month, day, event.start!.hour,
+                  event.start!.minute),
+              end: event.end != null
+                  ? DateTime(now.year, now.month, day, event.end!.hour,
+                      event.end!.minute)
+                  : null,
+              title: event.title,
+              description: event.description,
+              person: person,
+              hasTime: event.hasTime,
+            );
+            widget.onUpdateEvent(oldEvent, newEvent, day, personIndex);
+          });
+        },
+        builder: (context, candidateData, rejectedData) {
+          return GestureDetector(
+            onTap: () => _handleCellTap(day, personIndex),
+            behavior: HitTestBehavior.opaque,
+            child: Container(
+              decoration: BoxDecoration(
+                color: _getCellBackgroundColor(
+                    DateTime(now.year, now.month, day), false, false, false),
+                border: Border.all(
+                  color: isCellFocused
+                      ? (_isEventKeyboardNavigation
+                          ? Colors.orange // Regular orange for event navigation
+                          : Colors.orange
+                              .shade700) // Darker orange for regular focus
+                      : Colors.grey[300]!,
+                  width:
+                      isCellFocused ? (_isEventKeyboardNavigation ? 2 : 3) : 1,
+                ),
+                boxShadow: isCellFocused && !_isEventKeyboardNavigation
+                    ? [
+                        BoxShadow(
+                          color: Colors.orange.withOpacity(0.3),
+                          blurRadius: 4,
+                          spreadRadius: 2,
+                        )
+                      ]
+                    : null,
               ),
-              if (isCellFocused && !_isEventKeyboardNavigation)
-                Positioned(
-                  right: 4,
-                  bottom: 4,
-                  child: MouseRegion(
-                    cursor: SystemMouseCursors.click,
-                    child: GestureDetector(
-                      onTap: () {
-                        // TODO: Implement add event functionality
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: Colors.blue,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.add,
-                          color: Colors.white,
-                          size: 16,
+              height: 100,
+              child: Stack(
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: cellEvents.asMap().entries.map((entry) {
+                      int index = entry.key;
+                      Event event = entry.value;
+                      return _buildEventWidget(
+                        event,
+                        now,
+                        context,
+                        isFocused: isCellFocused &&
+                            _isEventKeyboardNavigation &&
+                            index == _focusedEventIndex,
+                      );
+                    }).toList(),
+                  ),
+                  if (isCellFocused && !_isEventKeyboardNavigation)
+                    Positioned(
+                      right: 4,
+                      bottom: 4,
+                      child: MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: GestureDetector(
+                          onTap: () {
+                            // TODO: Implement add event functionality
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.blue,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.add,
+                              color: Colors.white,
+                              size: 16,
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ),
-            ],
-          ),
-        ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -900,44 +923,70 @@ class _HoverableEventWidgetState extends State<_HoverableEventWidget> {
       cursor: SystemMouseCursors.click,
       onEnter: (_) => setState(() => isHovered = true),
       onExit: (_) => setState(() => isHovered = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.all(2.0),
-          decoration: BoxDecoration(
-            color: widget.isFocused
-                ? Colors.blue.withOpacity(0.3)
-                : (isHovered
-                    ? Colors.blue.withOpacity(0.2)
-                    : Colors.blue.withOpacity(0.1)),
-            borderRadius: BorderRadius.circular(4),
-            border: Border.all(
-              color: widget.isFocused
-                  ? Colors.blue
-                  : (isHovered
-                      ? Colors.blue.withOpacity(0.5)
-                      : Colors.blue.withOpacity(0.3)),
-              width: widget.isFocused ? 2 : 1,
+      child: Draggable<Event>(
+        data: widget.event,
+        feedback: Material(
+          child: Container(
+            padding: const EdgeInsets.all(2.0),
+            decoration: BoxDecoration(
+              color: Colors.blue.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(
+                color: Colors.blue,
+                width: 2,
+              ),
             ),
-            boxShadow: [
-              if (isHovered || widget.isFocused)
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-            ],
+            child: Text(
+              widget.eventText,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
-          child: Text(
-            widget.eventText,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: isHovered ? FontWeight.bold : FontWeight.normal,
-              decoration: isPast ? TextDecoration.lineThrough : null,
-              color: isPast ? Colors.grey : Colors.black,
+        ),
+        childWhenDragging: Container(),
+        child: GestureDetector(
+          onTap: widget.onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.all(2.0),
+            decoration: BoxDecoration(
+              color: widget.isFocused
+                  ? Colors.blue.withOpacity(0.3)
+                  : (isHovered
+                      ? Colors.blue.withOpacity(0.2)
+                      : Colors.blue.withOpacity(0.1)),
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(
+                color: widget.isFocused
+                    ? Colors.blue
+                    : (isHovered
+                        ? Colors.blue.withOpacity(0.5)
+                        : Colors.blue.withOpacity(0.3)),
+                width: widget.isFocused ? 2 : 1,
+              ),
+              boxShadow: [
+                if (isHovered || widget.isFocused)
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+              ],
             ),
-            overflow: TextOverflow.ellipsis,
+            child: Text(
+              widget.eventText,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: isHovered ? FontWeight.bold : FontWeight.normal,
+                decoration: isPast ? TextDecoration.lineThrough : null,
+                color: isPast ? Colors.grey : Colors.black,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ),
       ),
