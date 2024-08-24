@@ -215,6 +215,21 @@ class _EventEditDialogState extends State<EventEditDialog> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    GestureDetector(
+                      onTapDown: (details) =>
+                          _handleTextFieldTap(details, titleController),
+                      child: TextFormField(
+                        decoration: const InputDecoration(
+                          labelText: 'Title',
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.all(12),
+                        ),
+                        controller: titleController,
+                        focusNode: titleFocusNode,
+                        onFieldSubmitted: (_) => submitForm(),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                     Row(
                       children: [
                         Expanded(
@@ -255,21 +270,6 @@ class _EventEditDialogState extends State<EventEditDialog> {
                           ),
                         ),
                       ],
-                    ),
-                    const SizedBox(height: 16),
-                    GestureDetector(
-                      onTapDown: (details) =>
-                          _handleTextFieldTap(details, titleController),
-                      child: TextFormField(
-                        decoration: const InputDecoration(
-                          labelText: 'Title',
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.all(12),
-                        ),
-                        controller: titleController,
-                        focusNode: titleFocusNode,
-                        onFieldSubmitted: (_) => submitForm(),
-                      ),
                     ),
                     const SizedBox(height: 16),
                     GestureDetector(
