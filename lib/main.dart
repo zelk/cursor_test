@@ -3,6 +3,8 @@ import 'package:intl/intl.dart';
 import 'dart:math';
 import 'event_edit_dialog.dart';
 import 'package:flutter/services.dart';
+import 'models/event.dart';
+import 'models/person.dart';
 
 void main() {
   runApp(const MyApp());
@@ -22,30 +24,6 @@ class MyApp extends StatelessWidget {
       home: MyHomePage(title: DateFormat('MMMM yyyy').format(DateTime.now())),
     );
   }
-}
-
-class Event {
-  final DateTime? start;
-  final DateTime? end;
-  final String title;
-  final String description;
-  final Person person;
-  final bool hasTime;
-
-  Event({
-    this.start,
-    this.end,
-    required this.title,
-    required this.description,
-    required this.person,
-    required this.hasTime,
-  });
-}
-
-class Person {
-  final String name;
-
-  Person({required this.name});
 }
 
 class MyHomePage extends StatefulWidget {
@@ -1004,7 +982,9 @@ class _HoverableEventWidgetState extends State<_HoverableEventWidget> {
           ? DateTime(event.start!.year, event.start!.month, event.start!.day)
           : null;
       final today = DateTime(now.year, now.month, now.day);
-      return eventDate != null && eventDate.isBefore(today);
+      return eventDate != null &&
+          eventDate.isBefore(today) &&
+          eventDate != today;
     }
   }
 }

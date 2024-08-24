@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'main.dart'; // Import this to access Event and Person classes
+import 'models/event.dart'; // Updated import
 
 class EventEditDialog extends StatefulWidget {
   final Event event;
@@ -13,10 +13,10 @@ class EventEditDialog extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  _EventEditDialogState createState() => _EventEditDialogState();
+  EventEditDialogState createState() => EventEditDialogState();
 }
 
-class _EventEditDialogState extends State<EventEditDialog> {
+class EventEditDialogState extends State<EventEditDialog> {
   final formKey = GlobalKey<FormState>();
   late TextEditingController titleController;
   late FocusNode titleFocusNode;
