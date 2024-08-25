@@ -153,7 +153,7 @@ class EventEditDialogState extends State<EventEditDialog> {
       final startTime = _parseTime(startTimeController.text);
       final endTime = _parseTime(endTimeController.text);
 
-      final DateTime? startDateTime = startTime != null
+      final DateTime startDateTime = startTime != null
           ? DateTime(
               widget.event?.start?.year ?? widget.date.year,
               widget.event?.start?.month ?? widget.date.month,

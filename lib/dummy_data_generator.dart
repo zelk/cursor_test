@@ -60,8 +60,6 @@ class DummyDataGenerator {
     final now = DateTime.now();
     final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
 
-    print("Generating dummy events...");
-
     const totalEvents = 100;
     final allDayEventsCount =
         (totalEvents * 0.2).round(); // 20% of total events
@@ -107,10 +105,6 @@ class DummyDataGenerator {
       );
       events.add(allDayEvent);
     }
-
-    print("Total events generated: ${events.length}");
-    print("All-day events: $allDayEventsCount");
-    print("Timed events: $timedEventsCount");
 
     return events;
   }

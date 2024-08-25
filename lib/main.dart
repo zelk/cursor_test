@@ -441,11 +441,12 @@ class _CalendarViewState extends State<CalendarView> {
       child: Stack(
         children: [
           if (isToday)
-            const Positioned(
-              left: 24,
+            Positioned(
+              left: 0,
               top: 0,
               bottom: 0,
-              child: Center(
+              child: Align(
+                alignment: Alignment.centerLeft,
                 child: Icon(
                   Icons.arrow_right,
                   color: Colors.orange,
