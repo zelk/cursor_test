@@ -234,15 +234,13 @@ class EventEditDialogState extends State<EventEditDialog> {
         child: Focus(
           autofocus: true,
           child: AlertDialog(
-            title: Text(widget.event == null
-                ? 'Create Event'
-                : 'Edit Event'), // Update title
             content: Form(
               key: formKey,
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    const SizedBox(height: 16), // Add vertical spacing
                     GestureDetector(
                       onTapDown: (details) =>
                           _handleTextFieldTap(details, titleController),
