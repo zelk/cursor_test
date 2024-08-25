@@ -441,7 +441,7 @@ class _CalendarViewState extends State<CalendarView> {
       child: Stack(
         children: [
           if (isToday)
-            Positioned(
+            const Positioned(
               left: 0,
               top: 0,
               bottom: 0,
@@ -888,20 +888,52 @@ class _HoverableEventWidgetState extends State<_HoverableEventWidget> {
                   ),
               ],
             ),
-            child: Text(
-              widget.eventText,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: isHovered ? FontWeight.bold : FontWeight.normal,
-                decoration: isPast ? TextDecoration.lineThrough : null,
-                color: isPast ? Colors.grey : Colors.black,
-              ),
-              overflow: TextOverflow.ellipsis,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (widget.event.hasTime && widget.event.start != null)
+                  Text(
+                    _formatEventTime(widget.event),
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight:
+                          isHovered ? FontWeight.bold : FontWeight.normal,
+                      color: isPast ? Colors.grey : Colors.black,
+                      decoration: isPast ? TextDecoration.lineThrough : null,
+                    ),
+                  ),
+                Text(
+                  widget.event.title,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: isHovered ? FontWeight.bold : FontWeight.normal,
+                    decoration: isPast ? TextDecoration.lineThrough : null,
+                    color: isPast ? Colors.grey : Colors.black,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
           ),
         ),
       ),
     );
+  }
+
+  String _formatEventTime(Event event) {
+    if (event.start != null) {
+      if (event.end != null) {
+        return '${_formatTime(event.start!)} - ${_formatTime(event.end!)}';
+      } else {
+        return _formatTime(event.start!);
+      }
+    }
+    return '';
+  }
+
+  String _formatTime(DateTime time) {
+    final formatter = DateFormat('HH:mm');
+    return formatter.format(time);
   }
 
   bool _isEventPast(Event event, DateTime now) {

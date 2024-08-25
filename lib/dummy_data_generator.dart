@@ -62,7 +62,7 @@ class DummyDataGenerator {
 
     const totalEvents = 100;
     final allDayEventsCount =
-        (totalEvents * 0.2).round(); // 20% of total events
+        (totalEvents * 0.4).round(); // 40% of total events
     final timedEventsCount = totalEvents - allDayEventsCount;
 
     List<Event> events = [];
