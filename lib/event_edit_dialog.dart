@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'models/event.dart'; // Updated import
+import 'models/person.dart'; // Updated import
 
 class EventEditDialog extends StatefulWidget {
-  final Event event;
+  final Event? event; // Allow null for new event creation
   final Function(Event oldEvent, Event? newEvent) onUpdateEvent;
+  final String person; // Add person
+  final DateTime date; // Add date
 
   const EventEditDialog({
     Key? key,
-    required this.event,
+    this.event, // Make event optional
     required this.onUpdateEvent,
+    required this.person, // Add person
+    required this.date, // Add date
   }) : super(key: key);
 
   @override
@@ -34,22 +39,22 @@ class EventEditDialogState extends State<EventEditDialog> {
   @override
   void initState() {
     super.initState();
-    titleController = TextEditingController(text: widget.event.title);
+    titleController = TextEditingController(text: widget.event?.title ?? '');
     titleFocusNode = FocusNode();
 
-    description = widget.event.description;
-    start = widget.event.start;
-    end = widget.event.end;
-    hasTime = widget.event.hasTime;
+    description = widget.event?.description ?? '';
+    start = widget.event?.start;
+    end = widget.event?.end;
+    hasTime = widget.event?.hasTime ?? false;
 
     startTimeController = TextEditingController(
-      text: widget.event.hasTime && widget.event.start != null
-          ? _formatTimeOfDay(TimeOfDay.fromDateTime(widget.event.start!))
+      text: hasTime && start != null
+          ? _formatTimeOfDay(TimeOfDay.fromDateTime(start!))
           : '',
     );
     endTimeController = TextEditingController(
-      text: widget.event.hasTime && widget.event.end != null
-          ? _formatTimeOfDay(TimeOfDay.fromDateTime(widget.event.end!))
+      text: hasTime && end != null
+          ? _formatTimeOfDay(TimeOfDay.fromDateTime(end!))
           : '',
     );
 
@@ -63,6 +68,10 @@ class EventEditDialogState extends State<EventEditDialog> {
     titleFocusNode.addListener(() => _handleFocusChange(titleFocusNode));
     descriptionFocusNode
         .addListener(() => _handleFocusChange(descriptionFocusNode));
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      FocusScope.of(context).requestFocus(titleFocusNode);
+    });
   }
 
   @override
@@ -146,19 +155,19 @@ class EventEditDialogState extends State<EventEditDialog> {
 
       final DateTime? startDateTime = startTime != null
           ? DateTime(
-              start?.year ?? DateTime.now().year,
-              start?.month ?? DateTime.now().month,
-              start?.day ?? DateTime.now().day,
+              widget.event?.start?.year ?? widget.date.year,
+              widget.event?.start?.month ?? widget.date.month,
+              widget.event?.start?.day ?? widget.date.day,
               startTime.hour,
               startTime.minute,
             )
-          : start;
+          : widget.event?.start ?? widget.date;
 
       final DateTime? endDateTime = endTime != null
           ? DateTime(
-              end?.year ?? DateTime.now().year,
-              end?.month ?? DateTime.now().month,
-              end?.day ?? DateTime.now().day,
+              widget.event?.end?.year ?? widget.date.year,
+              widget.event?.end?.month ?? widget.date.month,
+              widget.event?.end?.day ?? widget.date.day,
               endTime.hour,
               endTime.minute,
             )
@@ -171,16 +180,32 @@ class EventEditDialogState extends State<EventEditDialog> {
         end: endDateTime,
         title: titleController.text,
         description: description,
-        person: widget.event.person,
+        person: widget.event?.person ??
+            Person(name: widget.person), // Convert String to Person
         hasTime: hasTimeValue,
       );
-      widget.onUpdateEvent(widget.event, updatedEvent);
+
+      if (widget.event != null) {
+        widget.onUpdateEvent(widget.event!, updatedEvent);
+      } else {
+        widget.onUpdateEvent(
+          Event(
+            start: DateTime.now(), // Provide required parameters
+            end: DateTime.now(), // Provide required parameters
+            title: '',
+            description: '',
+            person: Person(name: ''), // Convert String to Person
+            hasTime: false,
+          ),
+          updatedEvent,
+        ); // Pass a dummy old event for new event creation
+      }
       Navigator.of(context).pop();
     }
   }
 
   void deleteEvent() {
-    widget.onUpdateEvent(widget.event, null);
+    widget.onUpdateEvent(widget.event!, null);
     Navigator.of(context).pop();
   }
 
@@ -209,6 +234,9 @@ class EventEditDialogState extends State<EventEditDialog> {
         child: Focus(
           autofocus: true,
           child: AlertDialog(
+            title: Text(widget.event == null
+                ? 'Create Event'
+                : 'Edit Event'), // Update title
             content: Form(
               key: formKey,
               child: SingleChildScrollView(
@@ -297,11 +325,13 @@ class EventEditDialogState extends State<EventEditDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  TextButton(
-                    onPressed: deleteEvent,
-                    style: TextButton.styleFrom(foregroundColor: Colors.red),
-                    child: const Text('Delete'),
-                  ),
+                  if (widget.event != null)
+                    TextButton(
+                      onPressed: deleteEvent,
+                      style: TextButton.styleFrom(foregroundColor: Colors.red),
+                      child: const Text('Delete'),
+                    ),
+                  const Spacer(), // Add Spacer to push buttons to the right
                   Row(
                     children: [
                       TextButton(

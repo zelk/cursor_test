@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'dart:math';
 import 'event_edit_dialog.dart';
 import 'package:flutter/services.dart';
 import 'models/event.dart';
@@ -75,42 +74,8 @@ class _MyHomePageState extends State<MyHomePage> {
           // Update the event
           events[index] = newEvent;
         }
-        // Resort events and update _focusedEventIndex
-        _resortEventsAndUpdateFocus(focusedDay, focusedPersonIndex);
       }
     });
-  }
-
-  void _resortEventsAndUpdateFocus(int focusedDay, int focusedPersonIndex) {
-    final cellEvents = _getEventsForCurrentCell(focusedDay, focusedPersonIndex);
-    cellEvents.sort((a, b) {
-      if (a.hasTime && b.hasTime) {
-        return a.start!.compareTo(b.start!);
-      } else if (a.hasTime) {
-        return -1;
-      } else if (b.hasTime) {
-        return 1;
-      } else {
-        return 0;
-      }
-    });
-
-    // Note: We can't update _focusedEventIndex here as it's in CalendarView
-    // You might want to consider moving this logic to CalendarView
-  }
-
-  List<Event> _getEventsForCurrentCell(int focusedDay, int focusedPersonIndex) {
-    final now = DateTime.now();
-    final person = people[focusedPersonIndex];
-
-    return events
-        .where((event) =>
-            event.person.name == person.name &&
-            event.start != null &&
-            event.start!.day == focusedDay &&
-            event.start!.month == now.month &&
-            event.start!.year == now.year)
-        .toList();
   }
 
   @override
@@ -323,7 +288,8 @@ class _CalendarViewState extends State<CalendarView> {
         _getEventsForCell(_focusedDay, widget.people[_focusedPersonIndex]);
     if (_focusedEventIndex >= 0 && _focusedEventIndex < cellEvents.length) {
       final focusedEvent = cellEvents[_focusedEventIndex];
-      _showEventEditDialog(context, focusedEvent);
+      _showEventEditDialog(context, focusedEvent,
+          DateTime.now()); // Add the missing date argument
     }
   }
 
@@ -612,7 +578,8 @@ class _CalendarViewState extends State<CalendarView> {
                         cursor: SystemMouseCursors.click,
                         child: GestureDetector(
                           onTap: () {
-                            // TODO: Implement add event functionality
+                            _showEventEditDialog(context, null,
+                                DateTime(now.year, now.month, day));
                           },
                           child: Container(
                             padding: const EdgeInsets.all(4),
@@ -644,7 +611,8 @@ class _CalendarViewState extends State<CalendarView> {
     return _HoverableEventWidget(
       event: event,
       now: now,
-      onTap: () => _showEventEditDialog(context, event),
+      onTap: () => _showEventEditDialog(
+          context, event, DateTime.now()), // Added the missing date argument
       eventText: eventText,
       isFocused: isFocused,
     );
@@ -662,17 +630,28 @@ class _CalendarViewState extends State<CalendarView> {
     }
   }
 
-  void _showEventEditDialog(BuildContext context, Event event) {
+  void _showEventEditDialog(BuildContext context, Event? event, DateTime date) {
     _focusedEvent = event; // Store the currently focused event
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return EventEditDialog(
           event: event,
+          person:
+              widget.people[_focusedPersonIndex].name, // Pass the name property
+          date: date, // Use the passed date
           onUpdateEvent: (Event oldEvent, Event? newEvent) {
-            widget.onUpdateEvent(
-                oldEvent, newEvent, _focusedDay, _focusedPersonIndex);
-            _updateFocusedEventIndex(oldEvent, newEvent);
+            if (event == null && newEvent != null) {
+              // Handle new event creation
+              setState(() {
+                widget.events.add(newEvent);
+                _resortEventsAndUpdateFocus(_focusedDay, _focusedPersonIndex);
+              });
+            } else {
+              widget.onUpdateEvent(
+                  oldEvent, newEvent, _focusedDay, _focusedPersonIndex);
+              _updateFocusedEventIndex(oldEvent, newEvent);
+            }
           },
         );
       },
@@ -790,6 +769,38 @@ class _CalendarViewState extends State<CalendarView> {
     });
     _focusNode.requestFocus();
     _scrollToFocusedCell(); // Add this line to trigger auto-scrolling
+  }
+
+  void _resortEventsAndUpdateFocus(int focusedDay, int focusedPersonIndex) {
+    final cellEvents = _getEventsForCurrentCell(focusedDay, focusedPersonIndex);
+    cellEvents.sort((a, b) {
+      if (a.hasTime && b.hasTime) {
+        return a.start!.compareTo(b.start!);
+      } else if (a.hasTime) {
+        return -1;
+      } else if (b.hasTime) {
+        return 1;
+      } else {
+        return 0;
+      }
+    });
+
+    // Note: We can't update _focusedEventIndex here as it's in CalendarView
+    // You might want to consider moving this logic to CalendarView
+  }
+
+  List<Event> _getEventsForCurrentCell(int focusedDay, int focusedPersonIndex) {
+    final now = DateTime.now();
+    final person = widget.people[focusedPersonIndex];
+
+    return widget.events
+        .where((event) =>
+            event.person.name == person.name &&
+            event.start != null &&
+            event.start!.day == focusedDay &&
+            event.start!.month == now.month &&
+            event.start!.year == now.year)
+        .toList();
   }
 }
 
