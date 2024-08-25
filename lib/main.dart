@@ -279,6 +279,14 @@ class _CalendarViewState extends State<CalendarView> {
     } else if (event.logicalKey == LogicalKeyboardKey.enter) {
       _openEditDialogForFocusedEvent();
       return KeyEventResult.handled;
+    } else if (event.logicalKey == LogicalKeyboardKey.delete ||
+        event.logicalKey == LogicalKeyboardKey.backspace) {
+      if (_focusedEvent != null) {
+        widget.onUpdateEvent(
+            _focusedEvent!, null, _focusedDay, _focusedPersonIndex);
+        _updateFocusedEventIndex(_focusedEvent!, null);
+        return KeyEventResult.handled;
+      }
     }
     return KeyEventResult.ignored;
   }
@@ -696,6 +704,11 @@ class _CalendarViewState extends State<CalendarView> {
 
         _focusedEvent =
             _focusedEventIndex >= 0 ? cellEvents[_focusedEventIndex] : null;
+
+        // Check if there are no more events in the current cell
+        if (cellEvents.isEmpty) {
+          _exitEventKeyboardNavigation();
+        }
       }
     });
   }
