@@ -7,7 +7,7 @@ class DummyDataGenerator {
     'Tennisträning',
     'Läxläsning',
     'Tvättdag',
-    'Lunch med mormor',
+    'Lunch med farmor',
     'Fotbollsmatch',
     'Pianolektion',
     'Tandläkarbesök',

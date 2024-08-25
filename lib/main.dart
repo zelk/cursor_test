@@ -895,7 +895,7 @@ class _HoverableEventWidgetState extends State<_HoverableEventWidget> {
                   Text(
                     _formatEventTime(widget.event),
                     style: TextStyle(
-                      fontSize: 9,
+                      fontSize: 10,
                       fontWeight:
                           isHovered ? FontWeight.bold : FontWeight.normal,
                       color: isPast ? Colors.grey : Colors.black,
