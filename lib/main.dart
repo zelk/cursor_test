@@ -620,15 +620,15 @@ class _CalendarViewState extends State<CalendarView> {
   }
 
   String _formatEventText(Event event) {
+    String timeText = '';
     if (event.hasTime && event.start != null) {
       if (event.end != null) {
-        return '${_formatTime(event.start!)} - ${_formatTime(event.end!)} ${event.title}';
+        timeText = '${_formatTime(event.start!)} - ${_formatTime(event.end!)} ';
       } else {
-        return '${_formatTime(event.start!)} ${event.title}';
+        timeText = '${_formatTime(event.start!)} ';
       }
-    } else {
-      return event.title;
     }
+    return '$timeText${event.title}';
   }
 
   void _showEventEditDialog(BuildContext context, Event? event, DateTime date) {
@@ -832,8 +832,12 @@ class _HoverableEventWidgetState extends State<_HoverableEventWidget> {
     final isPast = _isEventPast(widget.event, widget.now);
     return MouseRegion(
       cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => isHovered = true),
-      onExit: (_) => setState(() => isHovered = false),
+      onEnter: (_) {
+        setState(() => isHovered = true);
+      },
+      onExit: (_) {
+        setState(() => isHovered = false);
+      },
       child: Draggable<Event>(
         data: widget.event,
         feedback: Material(
@@ -888,31 +892,17 @@ class _HoverableEventWidgetState extends State<_HoverableEventWidget> {
                   ),
               ],
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (widget.event.hasTime && widget.event.start != null)
-                  Text(
-                    _formatEventTime(widget.event),
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight:
-                          isHovered ? FontWeight.bold : FontWeight.normal,
-                      color: isPast ? Colors.grey : Colors.black,
-                      decoration: isPast ? TextDecoration.lineThrough : null,
-                    ),
-                  ),
-                Text(
-                  widget.event.title,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: isHovered ? FontWeight.bold : FontWeight.normal,
-                    decoration: isPast ? TextDecoration.lineThrough : null,
-                    color: isPast ? Colors.grey : Colors.black,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+            child: Text(
+              _formatEventText(widget.event),
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: isHovered ? FontWeight.bold : FontWeight.normal,
+                decoration: isPast ? TextDecoration.lineThrough : null,
+                color: isPast ? Colors.grey : Colors.black,
+              ),
+              overflow: TextOverflow.visible,
+              softWrap: true,
+              maxLines: null,
             ),
           ),
         ),
@@ -920,15 +910,16 @@ class _HoverableEventWidgetState extends State<_HoverableEventWidget> {
     );
   }
 
-  String _formatEventTime(Event event) {
-    if (event.start != null) {
+  String _formatEventText(Event event) {
+    String timeText = '';
+    if (event.hasTime && event.start != null) {
       if (event.end != null) {
-        return '${_formatTime(event.start!)} - ${_formatTime(event.end!)}';
+        timeText = '${_formatTime(event.start!)} - ${_formatTime(event.end!)} ';
       } else {
-        return _formatTime(event.start!);
+        timeText = '${_formatTime(event.start!)} ';
       }
     }
-    return '';
+    return '$timeText${event.title}';
   }
 
   String _formatTime(DateTime time) {
