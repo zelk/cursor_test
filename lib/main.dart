@@ -909,13 +909,34 @@ class _HoverableEventWidgetState extends State<_HoverableEventWidget> {
                   ),
               ],
             ),
-            child: Text(
-              _formatEventText(widget.event),
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: isHovered ? FontWeight.bold : FontWeight.normal,
-                decoration: isPast ? TextDecoration.lineThrough : null,
-                color: isPast ? Colors.grey : Colors.black,
+            child: RichText(
+              text: TextSpan(
+                children: [
+                  TextSpan(
+                    text: _formatEventTime(widget.event),
+                    style: TextStyle(
+                      fontSize: 12, // Same font size as the title
+                      fontWeight:
+                          isHovered ? FontWeight.bold : FontWeight.normal,
+                      decoration: isPast ? TextDecoration.lineThrough : null,
+                      color: isHovered
+                          ? (isPast ? Colors.grey : Colors.black)
+                          : Colors.grey[500], // Lighter grey color for the time
+                    ),
+                  ),
+                  TextSpan(
+                    text: widget.event.title,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight:
+                          isHovered ? FontWeight.bold : FontWeight.normal,
+                      decoration: isPast ? TextDecoration.lineThrough : null,
+                      color: isHovered
+                          ? (isPast ? Colors.grey : Colors.black)
+                          : (isPast ? Colors.grey : Colors.black),
+                    ),
+                  ),
+                ],
               ),
               overflow: TextOverflow.visible,
               softWrap: true,
@@ -927,7 +948,7 @@ class _HoverableEventWidgetState extends State<_HoverableEventWidget> {
     );
   }
 
-  String _formatEventText(Event event) {
+  String _formatEventTime(Event event) {
     String timeText = '';
     if (event.hasTime && event.start != null) {
       if (event.end != null) {
@@ -936,7 +957,7 @@ class _HoverableEventWidgetState extends State<_HoverableEventWidget> {
         timeText = '${_formatTime(event.start!)} ';
       }
     }
-    return '$timeText${event.title}';
+    return timeText;
   }
 
   String _formatTime(DateTime time) {
