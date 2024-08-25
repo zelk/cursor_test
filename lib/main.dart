@@ -527,7 +527,11 @@ class _CalendarViewState extends State<CalendarView> {
         },
         builder: (context, candidateData, rejectedData) {
           return GestureDetector(
-            onTap: () => _handleCellTap(day, personIndex),
+            onTap: () {
+              _handleCellTap(day, personIndex);
+              _showEventEditDialog(
+                  context, null, DateTime(now.year, now.month, day));
+            },
             behavior: HitTestBehavior.opaque,
             child: Container(
               decoration: BoxDecoration(
