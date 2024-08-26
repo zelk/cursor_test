@@ -948,9 +948,11 @@ class _HoverableEventWidgetState extends State<_HoverableEventWidget> {
                           : null,
                       color: widget.isPseudoEvent
                           ? Colors.green[700]
-                          : (isHovered
-                              ? (isPast ? Colors.grey : Colors.black)
-                              : (isPast ? Colors.grey : Colors.black)),
+                          : (widget.isFocused
+                              ? Colors.black
+                              : (isHovered
+                                  ? (isPast ? Colors.grey : Colors.black)
+                                  : (isPast ? Colors.grey : Colors.black))),
                     ),
                   ),
                 ],
