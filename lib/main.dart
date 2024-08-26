@@ -897,7 +897,33 @@ class _HoverableEventWidgetState extends State<_HoverableEventWidget> {
         ),
         childWhenDragging: Container(),
         child: GestureDetector(
-          onTap: widget.onTap,
+          onTap: () {
+            // Find the CalendarView ancestor
+            final calendarViewState =
+                context.findAncestorStateOfType<_CalendarViewState>();
+            if (calendarViewState != null) {
+              // Update the focused day and person index
+              calendarViewState.setState(() {
+                calendarViewState._focusedDay = widget.event.start!.day;
+                calendarViewState._focusedPersonIndex =
+                    calendarViewState.widget.people.indexWhere(
+                        (person) => person.name == widget.event.person.name);
+                calendarViewState._isCellNavigation = true;
+
+                // Find the index of the clicked event in the cell
+                final cellEvents = calendarViewState._getEventsForCell(
+                    calendarViewState._focusedDay,
+                    calendarViewState
+                        .widget.people[calendarViewState._focusedPersonIndex]);
+                calendarViewState._focusedEventIndex =
+                    cellEvents.indexOf(widget.event) + 1;
+                calendarViewState._focusedEvent = widget.event;
+              });
+
+              // Now that we've updated the state, call the original onTap
+              widget.onTap();
+            }
+          },
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.all(2.0),
