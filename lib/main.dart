@@ -134,7 +134,7 @@ class CalendarView extends StatefulWidget {
 class _CalendarViewState extends State<CalendarView> {
   int _focusedDay = DateTime.now().day;
   int _focusedPersonIndex = 0;
-  bool _isEventKeyboardNavigation = false;
+  bool _isCellNavigation = false;
   int _focusedEventIndex = -1;
   Event? _focusedEvent;
 
@@ -189,20 +189,20 @@ class _CalendarViewState extends State<CalendarView> {
             if (cellEvents.isEmpty) {
               return KeyEventResult.skipRemainingHandlers;
             }
-            if (_isEventKeyboardNavigation) {
+            if (_isCellNavigation) {
               _openEditDialogForFocusedEvent();
             } else {
               _toggleKeyboardNavigationMode();
             }
             return KeyEventResult.handled;
           } else if (event.logicalKey == LogicalKeyboardKey.escape &&
-              _isEventKeyboardNavigation) {
+              _isCellNavigation) {
             _exitEventKeyboardNavigation();
             return KeyEventResult.handled;
-          } else if (_isEventKeyboardNavigation) {
+          } else if (_isCellNavigation) {
             return _handleEventKeyboardNavigation(event);
           } else {
-            return _handleCellKeyboardNavigation(event);
+            return _handleCalendarNavigation(event);
           }
         }
         return KeyEventResult.ignored;
@@ -254,7 +254,7 @@ class _CalendarViewState extends State<CalendarView> {
   }
 
   KeyEventResult _handleEventKeyboardNavigation(RawKeyEvent event) {
-    if (!_isEventKeyboardNavigation) return KeyEventResult.ignored;
+    if (!_isCellNavigation) return KeyEventResult.ignored;
 
     final cellEvents =
         _getEventsForCell(_focusedDay, widget.people[_focusedPersonIndex]);
@@ -301,7 +301,7 @@ class _CalendarViewState extends State<CalendarView> {
     }
   }
 
-  KeyEventResult _handleCellKeyboardNavigation(RawKeyEvent event) {
+  KeyEventResult _handleCalendarNavigation(RawKeyEvent event) {
     final daysInMonth =
         DateTime(DateTime.now().year, DateTime.now().month + 1, 0).day;
     if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
@@ -365,8 +365,8 @@ class _CalendarViewState extends State<CalendarView> {
     final cellEvents =
         _getEventsForCell(_focusedDay, widget.people[_focusedPersonIndex]);
     setState(() {
-      _isEventKeyboardNavigation = !_isEventKeyboardNavigation;
-      if (_isEventKeyboardNavigation && cellEvents.isNotEmpty) {
+      _isCellNavigation = !_isCellNavigation;
+      if (_isCellNavigation && cellEvents.isNotEmpty) {
         _focusedEventIndex = 0;
         _focusedEvent = cellEvents[_focusedEventIndex];
       } else {
@@ -378,7 +378,7 @@ class _CalendarViewState extends State<CalendarView> {
 
   void _exitEventKeyboardNavigation() {
     setState(() {
-      _isEventKeyboardNavigation = false;
+      _isCellNavigation = false;
       _focusedEventIndex = -1;
       _focusedEvent = null;
     });
@@ -439,10 +439,10 @@ class _CalendarViewState extends State<CalendarView> {
         color: _getCellBackgroundColor(date, isToday, isPast, true),
         border: _focusedDay == date.day
             ? Border.all(
-                color: _isEventKeyboardNavigation
+                color: _isCellNavigation
                     ? Colors.orange.withOpacity(0.5)
                     : Colors.orange,
-                width: _isEventKeyboardNavigation ? 1 : 2,
+                width: _isCellNavigation ? 1 : 2,
               )
             : null,
       ),
@@ -496,7 +496,7 @@ class _CalendarViewState extends State<CalendarView> {
     final isCellFocused =
         _focusedDay == day && _focusedPersonIndex == personIndex;
 
-    if (isCellFocused && _isEventKeyboardNavigation) {
+    if (isCellFocused && _isCellNavigation) {
       if (_focusedEventIndex == -1 || _focusedEvent == null) {
         _focusedEventIndex = cellEvents.isEmpty ? -1 : 0;
         _focusedEvent =
@@ -547,15 +547,14 @@ class _CalendarViewState extends State<CalendarView> {
                     DateTime(now.year, now.month, day), false, false, false),
                 border: Border.all(
                   color: isCellFocused
-                      ? (_isEventKeyboardNavigation
+                      ? (_isCellNavigation
                           ? Colors.orange // Regular orange for event navigation
                           : Colors.orange
                               .shade700) // Darker orange for regular focus
                       : Colors.grey[300]!,
-                  width:
-                      isCellFocused ? (_isEventKeyboardNavigation ? 2 : 3) : 1,
+                  width: isCellFocused ? (_isCellNavigation ? 2 : 3) : 1,
                 ),
-                boxShadow: isCellFocused && !_isEventKeyboardNavigation
+                boxShadow: isCellFocused && !_isCellNavigation
                     ? [
                         BoxShadow(
                           color: Colors.orange.withOpacity(0.3),
@@ -578,7 +577,7 @@ class _CalendarViewState extends State<CalendarView> {
                         now,
                         context,
                         isFocused: isCellFocused &&
-                            _isEventKeyboardNavigation &&
+                            _isCellNavigation &&
                             index == _focusedEventIndex,
                       );
                     }).toList(),
@@ -661,7 +660,7 @@ class _CalendarViewState extends State<CalendarView> {
         }
       });
 
-      if (_isEventKeyboardNavigation) {
+      if (_isCellNavigation) {
         if (newEvent != null) {
           // Find the index of the updated event
           _focusedEventIndex = cellEvents.indexWhere((e) => e == newEvent);
@@ -755,7 +754,7 @@ class _CalendarViewState extends State<CalendarView> {
     setState(() {
       _focusedDay = day;
       _focusedPersonIndex = personIndex;
-      _isEventKeyboardNavigation = false;
+      _isCellNavigation = false;
       _focusedEventIndex = -1;
       _focusedEvent = null;
     });
