@@ -165,6 +165,17 @@ class _CalendarViewState extends State<CalendarView> {
     }
   }
 
+  void _scrollToCurrentDayRow() {
+    final now = DateTime.now();
+    const cellHeight = 100.0;
+    final currentDayOffset = (now.day - 1) * cellHeight;
+    _scrollController.animateTo(
+      currentDayOffset,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
+
   @override
   void dispose() {
     _scrollController.dispose();
@@ -325,6 +336,19 @@ class _CalendarViewState extends State<CalendarView> {
   KeyEventResult _handleCalendarNavigation(RawKeyEvent event) {
     final daysInMonth =
         DateTime(DateTime.now().year, DateTime.now().month + 1, 0).day;
+    final now = DateTime.now();
+
+    if (event.logicalKey == LogicalKeyboardKey.escape) {
+      if (_focusedDay != now.day) {
+        setState(() {
+          _focusedDay = now.day;
+        });
+        _scrollToCurrentDayRow();
+        return KeyEventResult.handled;
+      }
+      return KeyEventResult.ignored;
+    }
+
     if (event.logicalKey == LogicalKeyboardKey.arrowUp ||
         event.logicalKey == LogicalKeyboardKey.keyI) {
       if (_focusedDay > 1) {
