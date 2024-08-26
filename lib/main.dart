@@ -184,17 +184,13 @@ class _CalendarViewState extends State<CalendarView> {
       onKey: (FocusNode node, RawKeyEvent event) {
         if (event is RawKeyDownEvent) {
           if (event.logicalKey == LogicalKeyboardKey.enter) {
-            final cellEvents = _getEventsForCell(
-                _focusedDay, widget.people[_focusedPersonIndex]);
-            if (cellEvents.isEmpty) {
-              return KeyEventResult.skipRemainingHandlers;
-            }
-            if (_isCellNavigation) {
-              _openEditDialogForFocusedEvent();
+            if (!_isCellNavigation) {
+              _enterCellNavigationState();
+              return KeyEventResult.handled;
             } else {
-              _toggleKeyboardNavigationMode();
+              _openEditDialogForFocusedEvent();
+              return KeyEventResult.handled;
             }
-            return KeyEventResult.handled;
           } else if (event.logicalKey == LogicalKeyboardKey.escape &&
               _isCellNavigation) {
             _exitEventKeyboardNavigation();
@@ -351,8 +347,20 @@ class _CalendarViewState extends State<CalendarView> {
         _scrollToFocusedCell();
         return KeyEventResult.handled;
       }
+    } else if (event.logicalKey == LogicalKeyboardKey.enter) {
+      _enterCellNavigationState();
+      return KeyEventResult.handled;
     }
     return KeyEventResult.skipRemainingHandlers;
+  }
+
+  void _enterCellNavigationState() {
+    setState(() {
+      _isCellNavigation = true;
+      _focusedEventIndex =
+          0; // Always start at the first item (Create Event...)
+      _focusedEvent = null;
+    });
   }
 
   void _scrollToFocusedCell() {
@@ -385,13 +393,12 @@ class _CalendarViewState extends State<CalendarView> {
   }
 
   void _toggleKeyboardNavigationMode() {
-    final cellEvents =
-        _getEventsForCell(_focusedDay, widget.people[_focusedPersonIndex]);
     setState(() {
       _isCellNavigation = !_isCellNavigation;
-      if (_isCellNavigation && cellEvents.isNotEmpty) {
-        _focusedEventIndex = 0;
-        _focusedEvent = cellEvents[_focusedEventIndex];
+      if (_isCellNavigation) {
+        _focusedEventIndex =
+            0; // Always start at the first item (Create Event...)
+        _focusedEvent = null;
       } else {
         _focusedEventIndex = -1;
         _focusedEvent = null;
