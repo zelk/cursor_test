@@ -583,32 +583,6 @@ class _CalendarViewState extends State<CalendarView> {
                       );
                     }).toList(),
                   ),
-                  if (isCellFocused && !_isEventKeyboardNavigation)
-                    Positioned(
-                      right: 4,
-                      bottom: 4,
-                      child: MouseRegion(
-                        cursor: SystemMouseCursors.click,
-                        child: GestureDetector(
-                          onTap: () {
-                            _showEventEditDialog(context, null,
-                                DateTime(now.year, now.month, day));
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: Colors.blue,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(
-                              Icons.add,
-                              color: Colors.white,
-                              size: 16,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
                 ],
               ),
             ),
