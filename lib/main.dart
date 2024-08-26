@@ -925,14 +925,15 @@ class _HoverableEventWidgetState extends State<_HoverableEventWidget> {
                     TextSpan(
                       text: _formatEventTime(widget.event),
                       style: TextStyle(
-                        fontSize: 12, // Same font size as the title
+                        fontSize: 12,
                         fontWeight:
                             isHovered ? FontWeight.bold : FontWeight.normal,
                         decoration: isPast ? TextDecoration.lineThrough : null,
-                        color: isHovered
-                            ? (isPast ? Colors.grey : Colors.black)
-                            : Colors
-                                .grey[500], // Lighter grey color for the time
+                        color: widget.isFocused
+                            ? Colors.black
+                            : (isHovered
+                                ? (isPast ? Colors.grey : Colors.black)
+                                : Colors.grey[500]),
                       ),
                     ),
                   TextSpan(
