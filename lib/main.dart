@@ -392,20 +392,6 @@ class _CalendarViewState extends State<CalendarView> {
     });
   }
 
-  void _toggleKeyboardNavigationMode() {
-    setState(() {
-      _isCellNavigation = !_isCellNavigation;
-      if (_isCellNavigation) {
-        _focusedEventIndex =
-            0; // Always start at the first item (Create Event...)
-        _focusedEvent = null;
-      } else {
-        _focusedEventIndex = -1;
-        _focusedEvent = null;
-      }
-    });
-  }
-
   void _exitEventKeyboardNavigation() {
     setState(() {
       _isCellNavigation = false;
@@ -466,7 +452,7 @@ class _CalendarViewState extends State<CalendarView> {
       padding: const EdgeInsets.all(8.0),
       height: 100, // Match the height of person cells
       decoration: BoxDecoration(
-        color: _getCellBackgroundColor(date, isToday, isPast, true),
+        color: _getCellBackgroundColor(date, isToday, isPast, true, false),
         border: _focusedDay == date.day
             ? Border.all(
                 color: _isCellNavigation
@@ -572,7 +558,11 @@ class _CalendarViewState extends State<CalendarView> {
             child: Container(
               decoration: BoxDecoration(
                 color: _getCellBackgroundColor(
-                    DateTime(now.year, now.month, day), false, false, false),
+                    DateTime(now.year, now.month, day),
+                    false,
+                    false,
+                    false,
+                    isCellFocused && _isCellNavigation),
                 border: Border.all(
                   color: isCellFocused
                       ? (_isCellNavigation
@@ -739,17 +729,19 @@ class _CalendarViewState extends State<CalendarView> {
     return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
   }
 
-  Color _getCellBackgroundColor(
-      DateTime date, bool isToday, bool isPast, bool isDateColumn) {
+  Color _getCellBackgroundColor(DateTime date, bool isToday, bool isPast,
+      bool isDateColumn, bool isSelectedInCellNavigation) {
     Color baseColor;
-    if (isToday) {
+    if (isSelectedInCellNavigation) {
+      baseColor = Colors.orange[50] ?? Colors.orange[100]!;
+    } else if (isToday) {
       baseColor = Colors.yellow[100] ?? Colors.yellow;
     } else if (_isWeekend(date)) {
       baseColor = isPast ? Colors.grey[300]! : Colors.pink[50] ?? Colors.pink;
     } else if (isPast) {
       baseColor = Colors.grey[100] ?? Colors.grey;
     } else {
-      baseColor = Colors.white; // Changed from transparent to white
+      baseColor = Colors.white;
     }
 
     // Make the color darker for the date column
