@@ -264,7 +264,8 @@ class _CalendarViewState extends State<CalendarView> {
       ...cellEvents,
     ];
 
-    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp ||
+        event.logicalKey == LogicalKeyboardKey.keyI) {
       if (_focusedEventIndex > 0) {
         setState(() {
           _focusedEventIndex--;
@@ -272,7 +273,8 @@ class _CalendarViewState extends State<CalendarView> {
         });
         return KeyEventResult.handled;
       }
-    } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+    } else if (event.logicalKey == LogicalKeyboardKey.arrowDown ||
+        event.logicalKey == LogicalKeyboardKey.keyK) {
       if (_focusedEventIndex < displayEvents.length - 1) {
         setState(() {
           _focusedEventIndex++;
@@ -323,25 +325,29 @@ class _CalendarViewState extends State<CalendarView> {
   KeyEventResult _handleCalendarNavigation(RawKeyEvent event) {
     final daysInMonth =
         DateTime(DateTime.now().year, DateTime.now().month + 1, 0).day;
-    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp ||
+        event.logicalKey == LogicalKeyboardKey.keyI) {
       if (_focusedDay > 1) {
         _moveCellFocus(Direction.up);
         _scrollToFocusedCell();
         return KeyEventResult.handled;
       }
-    } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+    } else if (event.logicalKey == LogicalKeyboardKey.arrowDown ||
+        event.logicalKey == LogicalKeyboardKey.keyK) {
       if (_focusedDay < daysInMonth) {
         _moveCellFocus(Direction.down);
         _scrollToFocusedCell();
         return KeyEventResult.handled;
       }
-    } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+    } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft ||
+        event.logicalKey == LogicalKeyboardKey.keyJ) {
       if (_focusedPersonIndex > 0) {
         _moveCellFocus(Direction.left);
         _scrollToFocusedCell();
         return KeyEventResult.handled;
       }
-    } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+    } else if (event.logicalKey == LogicalKeyboardKey.arrowRight ||
+        event.logicalKey == LogicalKeyboardKey.keyL) {
       if (_focusedPersonIndex < widget.people.length - 1) {
         _moveCellFocus(Direction.right);
         _scrollToFocusedCell();
