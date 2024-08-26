@@ -796,42 +796,6 @@ class _CalendarViewState extends State<CalendarView> {
     _scrollToFocusedCell();
   }
 
-/*
-  void _updateFocusAfterEdit(Event? oldEvent, Event? newEvent) {
-    final cellEvents =
-        _getEventsForCell(_focusedDay, widget.people[_focusedPersonIndex]);
-    cellEvents.sort((a, b) {
-      if (a.hasTime && b.hasTime) {
-        return a.start!.compareTo(b.start!);
-      } else if (a.hasTime) {
-        return -1;
-      } else if (b.hasTime) {
-        return 1;
-      } else {
-        return 0;
-      }
-    });
-
-    if (newEvent != null) {
-      // For both new and updated events
-      _focusedEventIndex = cellEvents.indexOf(newEvent) + 1;
-      _focusedEvent = newEvent;
-    } else if (oldEvent != null) {
-      // For deleted events
-      _focusedEventIndex = cellEvents.isEmpty
-          ? 0
-          : cellEvents.indexOf(oldEvent).clamp(0, cellEvents.length - 1) + 1;
-      _focusedEvent =
-          _focusedEventIndex > 0 ? cellEvents[_focusedEventIndex - 1] : null;
-    }
-
-    if (cellEvents.isEmpty) {
-      _exitEventKeyboardNavigation();
-    } else {
-      _isCellNavigation = true;
-    }
-  }
-*/
   void _updateFocusedEventIndex(Event oldEvent, Event? newEvent) {
     // ... existing implementation ...
   }
