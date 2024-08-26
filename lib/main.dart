@@ -890,7 +890,8 @@ class _HoverableEventWidgetState extends State<_HoverableEventWidget> {
             }
           },
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
+            duration:
+                const Duration(milliseconds: 50), // Changed from 200 to 50
             padding: const EdgeInsets.all(2.0),
             decoration: BoxDecoration(
               color: widget.isPseudoEvent
