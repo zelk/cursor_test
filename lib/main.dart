@@ -21,21 +21,21 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: MyHomePage(title: DateFormat('MMMM yyyy').format(DateTime.now())),
+      home: CalendarPage(title: DateFormat('MMMM yyyy').format(DateTime.now())),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+class CalendarPage extends StatefulWidget {
+  const CalendarPage({super.key, required this.title});
 
   final String title;
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<CalendarPage> createState() => _CalendarPageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _CalendarPageState extends State<CalendarPage> {
   final List<Person> people = [
     Person(name: 'Caroline'),
     Person(name: 'Ricky'),
