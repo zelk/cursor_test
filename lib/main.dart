@@ -560,8 +560,6 @@ class _CalendarViewState extends State<CalendarView> {
           return GestureDetector(
             onTap: () {
               _handleCellTap(day, personIndex);
-              _showEventEditDialog(
-                  context, null, DateTime(now.year, now.month, day));
             },
             behavior: HitTestBehavior.opaque,
             child: Container(
@@ -590,6 +588,17 @@ class _CalendarViewState extends State<CalendarView> {
               height: 100,
               child: Stack(
                 children: [
+                  // Add this Positioned.fill widget to handle taps on empty space
+                  Positioned.fill(
+                    child: GestureDetector(
+                      onTap: () {
+                        _handleCellTap(day, personIndex);
+                        setState(() {
+                          _isCellNavigation = true;
+                        });
+                      },
+                    ),
+                  ),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: displayEvents.asMap().entries.map((entry) {
@@ -787,12 +796,12 @@ class _CalendarViewState extends State<CalendarView> {
     setState(() {
       _focusedDay = day;
       _focusedPersonIndex = personIndex;
-      _isCellNavigation = false;
+      _isCellNavigation = false; // Set to false initially
       _focusedEventIndex = -1;
       _focusedEvent = null;
     });
     _focusNode.requestFocus();
-    _scrollToFocusedCell(); // Add this line to trigger auto-scrolling
+    _scrollToFocusedCell();
   }
 
   void _resortEventsAndUpdateFocus(int focusedDay, int focusedPersonIndex) {
