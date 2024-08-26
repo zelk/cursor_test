@@ -258,21 +258,29 @@ class _CalendarViewState extends State<CalendarView> {
 
     final cellEvents =
         _getEventsForCell(_focusedDay, widget.people[_focusedPersonIndex]);
-    if (cellEvents.isEmpty) return KeyEventResult.ignored;
+    final displayEvents = [
+      Event(
+        title: "Create Event...",
+        person: widget.people[_focusedPersonIndex],
+        start: DateTime(DateTime.now().year, DateTime.now().month, _focusedDay),
+        hasTime: false,
+      ),
+      ...cellEvents,
+    ];
 
     if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
       if (_focusedEventIndex > 0) {
         setState(() {
           _focusedEventIndex--;
-          _focusedEvent = cellEvents[_focusedEventIndex];
+          _focusedEvent = displayEvents[_focusedEventIndex];
         });
         return KeyEventResult.handled;
       }
     } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-      if (_focusedEventIndex < cellEvents.length - 1) {
+      if (_focusedEventIndex < displayEvents.length - 1) {
         setState(() {
           _focusedEventIndex++;
-          _focusedEvent = cellEvents[_focusedEventIndex];
+          _focusedEvent = displayEvents[_focusedEventIndex];
         });
         return KeyEventResult.handled;
       }
@@ -294,10 +302,25 @@ class _CalendarViewState extends State<CalendarView> {
   void _openEditDialogForFocusedEvent() {
     final cellEvents =
         _getEventsForCell(_focusedDay, widget.people[_focusedPersonIndex]);
-    if (_focusedEventIndex >= 0 && _focusedEventIndex < cellEvents.length) {
-      final focusedEvent = cellEvents[_focusedEventIndex];
-      _showEventEditDialog(context, focusedEvent,
-          DateTime.now()); // Add the missing date argument
+    final displayEvents = [
+      Event(
+        title: "Create Event...",
+        person: widget.people[_focusedPersonIndex],
+        start: DateTime(DateTime.now().year, DateTime.now().month, _focusedDay),
+        hasTime: false,
+      ),
+      ...cellEvents,
+    ];
+
+    if (_focusedEventIndex >= 0 && _focusedEventIndex < displayEvents.length) {
+      final focusedEvent = displayEvents[_focusedEventIndex];
+      if (_focusedEventIndex == 0 && _isCellNavigation) {
+        // Create new event
+        _showEventEditDialog(context, null,
+            DateTime(DateTime.now().year, DateTime.now().month, _focusedDay));
+      } else {
+        _showEventEditDialog(context, focusedEvent, DateTime.now());
+      }
     }
   }
 
@@ -496,21 +519,21 @@ class _CalendarViewState extends State<CalendarView> {
     final isCellFocused =
         _focusedDay == day && _focusedPersonIndex == personIndex;
 
+    final displayEvents = [
+      if (isCellFocused && _isCellNavigation)
+        Event(
+          title: "Create Event...",
+          person: person,
+          start: DateTime(now.year, now.month, day),
+          hasTime: false,
+        ),
+      ...cellEvents,
+    ];
+
     if (isCellFocused && _isCellNavigation) {
-      if (_focusedEventIndex == -1 || _focusedEvent == null) {
-        _focusedEventIndex = cellEvents.isEmpty ? -1 : 0;
-        _focusedEvent =
-            _focusedEventIndex >= 0 ? cellEvents[_focusedEventIndex] : null;
-      } else {
-        // Ensure the focused event is still in the cell
-        final eventIndex = cellEvents.indexWhere((e) => e == _focusedEvent);
-        if (eventIndex == -1) {
-          _focusedEventIndex = 0;
-          _focusedEvent = cellEvents.isNotEmpty ? cellEvents[0] : null;
-        } else {
-          _focusedEventIndex = eventIndex;
-        }
-      }
+      _focusedEventIndex =
+          _focusedEventIndex.clamp(0, displayEvents.length - 1);
+      _focusedEvent = displayEvents[_focusedEventIndex];
     }
 
     return TableCell(
@@ -569,7 +592,7 @@ class _CalendarViewState extends State<CalendarView> {
                 children: [
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: cellEvents.asMap().entries.map((entry) {
+                    children: displayEvents.asMap().entries.map((entry) {
                       int index = entry.key;
                       Event event = entry.value;
                       return _buildEventWidget(
@@ -579,6 +602,8 @@ class _CalendarViewState extends State<CalendarView> {
                         isFocused: isCellFocused &&
                             _isCellNavigation &&
                             index == _focusedEventIndex,
+                        isPseudoEvent:
+                            isCellFocused && _isCellNavigation && index == 0,
                       );
                     }).toList(),
                   ),
@@ -592,15 +617,23 @@ class _CalendarViewState extends State<CalendarView> {
   }
 
   Widget _buildEventWidget(Event event, DateTime now, BuildContext context,
-      {bool isFocused = false}) {
-    String eventText = _formatEventText(event);
+      {bool isFocused = false, bool isPseudoEvent = false}) {
+    String eventText =
+        isPseudoEvent ? "Create Event..." : _formatEventText(event);
     return _HoverableEventWidget(
       event: event,
       now: now,
-      onTap: () => _showEventEditDialog(
-          context, event, DateTime.now()), // Added the missing date argument
+      onTap: () {
+        if (isPseudoEvent) {
+          _showEventEditDialog(
+              context, null, DateTime(now.year, now.month, _focusedDay));
+        } else {
+          _showEventEditDialog(context, event, DateTime.now());
+        }
+      },
       eventText: eventText,
       isFocused: isFocused,
+      isPseudoEvent: isPseudoEvent,
     );
   }
 
@@ -801,6 +834,7 @@ class _HoverableEventWidget extends StatefulWidget {
   final VoidCallback onTap;
   final String eventText;
   final bool isFocused;
+  final bool isPseudoEvent;
 
   const _HoverableEventWidget({
     required this.event,
@@ -808,6 +842,7 @@ class _HoverableEventWidget extends StatefulWidget {
     required this.onTap,
     required this.eventText,
     required this.isFocused,
+    this.isPseudoEvent = false,
   });
 
   @override
@@ -859,11 +894,13 @@ class _HoverableEventWidgetState extends State<_HoverableEventWidget> {
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.all(2.0),
             decoration: BoxDecoration(
-              color: widget.isFocused
-                  ? Colors.blue.withOpacity(0.3)
-                  : (isHovered
-                      ? Colors.blue.withOpacity(0.2)
-                      : Colors.blue.withOpacity(0.1)),
+              color: widget.isPseudoEvent
+                  ? Colors.green.withOpacity(0.1)
+                  : (widget.isFocused
+                      ? Colors.blue.withOpacity(0.3)
+                      : (isHovered
+                          ? Colors.blue.withOpacity(0.2)
+                          : Colors.blue.withOpacity(0.1))),
               borderRadius: BorderRadius.circular(4),
               border: Border.all(
                 color: widget.isFocused
@@ -885,28 +922,35 @@ class _HoverableEventWidgetState extends State<_HoverableEventWidget> {
             child: RichText(
               text: TextSpan(
                 children: [
-                  TextSpan(
-                    text: _formatEventTime(widget.event),
-                    style: TextStyle(
-                      fontSize: 12, // Same font size as the title
-                      fontWeight:
-                          isHovered ? FontWeight.bold : FontWeight.normal,
-                      decoration: isPast ? TextDecoration.lineThrough : null,
-                      color: isHovered
-                          ? (isPast ? Colors.grey : Colors.black)
-                          : Colors.grey[500], // Lighter grey color for the time
+                  if (!widget.isPseudoEvent)
+                    TextSpan(
+                      text: _formatEventTime(widget.event),
+                      style: TextStyle(
+                        fontSize: 12, // Same font size as the title
+                        fontWeight:
+                            isHovered ? FontWeight.bold : FontWeight.normal,
+                        decoration: isPast ? TextDecoration.lineThrough : null,
+                        color: isHovered
+                            ? (isPast ? Colors.grey : Colors.black)
+                            : Colors
+                                .grey[500], // Lighter grey color for the time
+                      ),
                     ),
-                  ),
                   TextSpan(
                     text: widget.event.title,
                     style: TextStyle(
                       fontSize: 12,
-                      fontWeight:
-                          isHovered ? FontWeight.bold : FontWeight.normal,
-                      decoration: isPast ? TextDecoration.lineThrough : null,
-                      color: isHovered
-                          ? (isPast ? Colors.grey : Colors.black)
-                          : (isPast ? Colors.grey : Colors.black),
+                      fontWeight: widget.isPseudoEvent
+                          ? FontWeight.bold
+                          : (isHovered ? FontWeight.bold : FontWeight.normal),
+                      decoration: isPast && !widget.isPseudoEvent
+                          ? TextDecoration.lineThrough
+                          : null,
+                      color: widget.isPseudoEvent
+                          ? Colors.green[700]
+                          : (isHovered
+                              ? (isPast ? Colors.grey : Colors.black)
+                              : (isPast ? Colors.grey : Colors.black)),
                     ),
                   ),
                 ],
