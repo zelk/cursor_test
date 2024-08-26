@@ -662,67 +662,60 @@ class _CalendarViewState extends State<CalendarView> {
       builder: (BuildContext context) {
         return EventEditDialog(
           event: event,
-          person:
-              widget.people[_focusedPersonIndex].name, // Pass the name property
-          date: date, // Use the passed date
+          person: widget.people[_focusedPersonIndex].name,
+          date: date,
           onUpdateEvent: (Event oldEvent, Event? newEvent) {
-            if (event == null && newEvent != null) {
-              // Handle new event creation
-              setState(() {
+            setState(() {
+              if (event == null && newEvent != null) {
+                // Handle new event creation
                 widget.events.add(newEvent);
-                _resortEventsAndUpdateFocus(_focusedDay, _focusedPersonIndex);
-              });
-            } else {
-              widget.onUpdateEvent(
-                  oldEvent, newEvent, _focusedDay, _focusedPersonIndex);
-              _updateFocusedEventIndex(oldEvent, newEvent);
-            }
+              } else {
+                // Handle event update or deletion
+                widget.onUpdateEvent(
+                    oldEvent, newEvent, _focusedDay, _focusedPersonIndex);
+              }
+              _updateFocusAfterEdit(oldEvent, newEvent);
+              _isCellNavigation = true;
+            });
           },
         );
       },
     );
   }
 
-  void _updateFocusedEventIndex(Event oldEvent, Event? newEvent) {
-    setState(() {
-      final cellEvents =
-          _getEventsForCell(_focusedDay, widget.people[_focusedPersonIndex]);
-      cellEvents.sort((a, b) {
-        if (a.hasTime && b.hasTime) {
-          return a.start!.compareTo(b.start!);
-        } else if (a.hasTime) {
-          return -1;
-        } else if (b.hasTime) {
-          return 1;
-        } else {
-          return 0;
-        }
-      });
-
-      if (_isCellNavigation) {
-        if (newEvent != null) {
-          // Find the index of the updated event
-          _focusedEventIndex = cellEvents.indexWhere((e) => e == newEvent);
-        } else {
-          // If the event was deleted, focus on the next event or the last one if it was the last event
-          _focusedEventIndex =
-              _focusedEventIndex.clamp(0, cellEvents.length - 1);
-        }
-
-        if (_focusedEventIndex == -1) {
-          // If the event is no longer in the cell, reset focus
-          _focusedEventIndex = cellEvents.isEmpty ? -1 : 0;
-        }
-
-        _focusedEvent =
-            _focusedEventIndex >= 0 ? cellEvents[_focusedEventIndex] : null;
-
-        // Check if there are no more events in the current cell
-        if (cellEvents.isEmpty) {
-          _exitEventKeyboardNavigation();
-        }
+  void _updateFocusAfterEdit(Event? oldEvent, Event? newEvent) {
+    final cellEvents =
+        _getEventsForCell(_focusedDay, widget.people[_focusedPersonIndex]);
+    cellEvents.sort((a, b) {
+      if (a.hasTime && b.hasTime) {
+        return a.start!.compareTo(b.start!);
+      } else if (a.hasTime) {
+        return -1;
+      } else if (b.hasTime) {
+        return 1;
+      } else {
+        return 0;
       }
     });
+
+    if (newEvent != null) {
+      // For both new and updated events
+      _focusedEventIndex = cellEvents.indexOf(newEvent) + 1;
+      _focusedEvent = newEvent;
+    } else if (oldEvent != null) {
+      // For deleted events
+      _focusedEventIndex = cellEvents.isEmpty
+          ? 0
+          : cellEvents.indexOf(oldEvent).clamp(0, cellEvents.length - 1) + 1;
+      _focusedEvent =
+          _focusedEventIndex > 0 ? cellEvents[_focusedEventIndex - 1] : null;
+    }
+
+    if (cellEvents.isEmpty) {
+      _exitEventKeyboardNavigation();
+    } else {
+      _isCellNavigation = true;
+    }
   }
 
   String _formatTime(DateTime time) {
@@ -803,8 +796,10 @@ class _CalendarViewState extends State<CalendarView> {
     _scrollToFocusedCell();
   }
 
-  void _resortEventsAndUpdateFocus(int focusedDay, int focusedPersonIndex) {
-    final cellEvents = _getEventsForCurrentCell(focusedDay, focusedPersonIndex);
+/*
+  void _updateFocusAfterEdit(Event? oldEvent, Event? newEvent) {
+    final cellEvents =
+        _getEventsForCell(_focusedDay, widget.people[_focusedPersonIndex]);
     cellEvents.sort((a, b) {
       if (a.hasTime && b.hasTime) {
         return a.start!.compareTo(b.start!);
@@ -817,22 +812,28 @@ class _CalendarViewState extends State<CalendarView> {
       }
     });
 
-    // Note: We can't update _focusedEventIndex here as it's in CalendarView
-    // You might want to consider moving this logic to CalendarView
+    if (newEvent != null) {
+      // For both new and updated events
+      _focusedEventIndex = cellEvents.indexOf(newEvent) + 1;
+      _focusedEvent = newEvent;
+    } else if (oldEvent != null) {
+      // For deleted events
+      _focusedEventIndex = cellEvents.isEmpty
+          ? 0
+          : cellEvents.indexOf(oldEvent).clamp(0, cellEvents.length - 1) + 1;
+      _focusedEvent =
+          _focusedEventIndex > 0 ? cellEvents[_focusedEventIndex - 1] : null;
+    }
+
+    if (cellEvents.isEmpty) {
+      _exitEventKeyboardNavigation();
+    } else {
+      _isCellNavigation = true;
+    }
   }
-
-  List<Event> _getEventsForCurrentCell(int focusedDay, int focusedPersonIndex) {
-    final now = DateTime.now();
-    final person = widget.people[focusedPersonIndex];
-
-    return widget.events
-        .where((event) =>
-            event.person.name == person.name &&
-            event.start != null &&
-            event.start!.day == focusedDay &&
-            event.start!.month == now.month &&
-            event.start!.year == now.year)
-        .toList();
+*/
+  void _updateFocusedEventIndex(Event oldEvent, Event? newEvent) {
+    // ... existing implementation ...
   }
 }
 
