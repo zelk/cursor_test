@@ -17,7 +17,9 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: CalendarPage(title: DateFormat('MMMM yyyy').format(DateTime.now())),
+      home: CalendarPage(
+        title: DateFormat('MMMM yyyy').format(DateTime.now()),
+      ),
     );
   }
 }
